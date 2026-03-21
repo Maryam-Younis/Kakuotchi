@@ -1,4 +1,6 @@
 """
+Maryam Younis(ysx7nx), Srivacthi Nadar (rqz4ht), Michael Sy(qha6dx)
+
 Kakuotchi — Budget Town
 Wild-west desert scene with horizontal scrolling.
 Each cactus is a budget category — scroll sideways to see them all.
@@ -243,6 +245,18 @@ class KakuotchiApp(tk.Tk):
 
     def __init__(self):
         super().__init__()
+        # Scale layout constants to fit the current screen
+        global W, HEADER_H, FOOTER_H, SCENE_H, H, CAT_SLOT
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        self._scale = max(0.55, min(1.0, sw * 0.90 / 480, sh * 0.90 / 760))
+        sc = self._scale
+        W        = int(480 * sc)
+        HEADER_H = int(122 * sc)
+        FOOTER_H = int(58  * sc)
+        SCENE_H  = int(580 * sc)
+        H        = HEADER_H + SCENE_H + FOOTER_H
+        CAT_SLOT = int(170 * sc)
+
         self.title("Kakuotchi — Budget Town")
         self.resizable(False, False)
         self.geometry(f"{W}x{H}")
@@ -322,13 +336,14 @@ class KakuotchiApp(tk.Tk):
 
     def _draw_sky(self, ww):
         cv = self.scene_cv
-        bands = [(0, 90, "#5FA8C8"), (90, 180, "#72B8D8"),
-                 (180, 265, "#87CEEB"), (265, 295, "#9DD5F0")]
+        sc = self._scale
+        bands = [(0, int(90*sc), "#5FA8C8"), (int(90*sc), int(180*sc), "#72B8D8"),
+                 (int(180*sc), int(265*sc), "#87CEEB"), (int(265*sc), int(295*sc), "#9DD5F0")]
         cv.create_rectangle(0, 0, ww, SCENE_H, fill="#5FA8C8", outline="")
         for y1, y2, col in bands:
             cv.create_rectangle(0, y1, ww, y2, fill=col, outline="")
         # Sun near right end
-        sx, sy, sr = ww - 60, 60, 26
+        sx, sy, sr = ww - int(60*sc), int(60*sc), int(26*sc)
         for i in range(10):
             a = math.radians(i * 36)
             cv.create_line(sx+(sr+4)*math.cos(a), sy+(sr+4)*math.sin(a),
@@ -340,54 +355,59 @@ class KakuotchiApp(tk.Tk):
 
     def _draw_rocks(self, ww):
         cv = self.scene_cv
+        sc = self._scale
+        s  = lambda v: int(v * sc)
         # Left formation
         cv.create_polygon(
-            [0,305, 0,195, 25,168, 58,150, 90,136, 122,148, 148,170, 164,205, 180,305],
+            [0,s(305), 0,s(195), s(25),s(168), s(58),s(150), s(90),s(136),
+             s(122),s(148), s(148),s(170), s(164),s(205), s(180),s(305)],
             fill="#C06035", outline="")
         cv.create_polygon(
-            [0,310, 0,210, 22,180, 52,158, 84,142, 118,155, 144,178, 158,210, 172,310],
+            [0,s(310), 0,s(210), s(22),s(180), s(52),s(158), s(84),s(142),
+             s(118),s(155), s(144),s(178), s(158),s(210), s(172),s(310)],
             fill="#9B3A12", outline="")
-        cv.create_line(22,180, 84,142, 144,178, fill="#7A2A05", width=2)
+        cv.create_line(s(22),s(180), s(84),s(142), s(144),s(178), fill="#7A2A05", width=2)
         # Right formation
         cv.create_polygon(
-            [ww,305, ww,195, ww-25,168, ww-58,150, ww-90,136,
-             ww-122,148, ww-148,170, ww-164,205, ww-180,305],
+            [ww,s(305), ww,s(195), ww-s(25),s(168), ww-s(58),s(150), ww-s(90),s(136),
+             ww-s(122),s(148), ww-s(148),s(170), ww-s(164),s(205), ww-s(180),s(305)],
             fill="#C06035", outline="")
         cv.create_polygon(
-            [ww,310, ww,210, ww-22,180, ww-52,158, ww-84,142,
-             ww-118,155, ww-144,178, ww-158,210, ww-172,310],
+            [ww,s(310), ww,s(210), ww-s(22),s(180), ww-s(52),s(158), ww-s(84),s(142),
+             ww-s(118),s(155), ww-s(144),s(178), ww-s(158),s(210), ww-s(172),s(310)],
             fill="#9B3A12", outline="")
-        cv.create_line(ww-22,180, ww-84,142, ww-144,178, fill="#7A2A05", width=2)
+        cv.create_line(ww-s(22),s(180), ww-s(84),s(142), ww-s(144),s(178), fill="#7A2A05", width=2)
         # Center butte
         mid = ww // 2
         cv.create_polygon(
-            [mid-80,310, mid-70,230, mid-45,208, mid,195,
-             mid+45,208, mid+70,230, mid+80,310],
+            [mid-s(80),s(310), mid-s(70),s(230), mid-s(45),s(208), mid,s(195),
+             mid+s(45),s(208), mid+s(70),s(230), mid+s(80),s(310)],
             fill="#B04A20", outline="")
         # Extra buttes for wide worlds
         if ww > W:
             for qx in [ww // 4, 3 * ww // 4]:
                 cv.create_polygon(
-                    [qx-50,310, qx-40,248, qx-15,232, qx+15,232,
-                     qx+40,248, qx+50,310],
+                    [qx-s(50),s(310), qx-s(40),s(248), qx-s(15),s(232), qx+s(15),s(232),
+                     qx+s(40),s(248), qx+s(50),s(310)],
                     fill="#C06035", outline="")
 
     # ── Ground ────────────────────────────────────────────────────────────────
 
     def _draw_ground(self, ww):
         cv = self.scene_cv
-        gy = 295
+        sc = self._scale
+        gy = int(295 * sc)
         cv.create_rectangle(0, gy, ww, SCENE_H, fill="#C8A96E", outline="")
-        cv.create_rectangle(0, gy, ww, gy+16, fill="#A88040", outline="")
-        for y in range(gy+30, SCENE_H, 44):
-            for x in range(10, ww-10, 55):
-                cv.create_oval(x, y, x+20, y+6, fill="#BBAA60", outline="")
+        cv.create_rectangle(0, gy, ww, gy+int(16*sc), fill="#A88040", outline="")
+        for y in range(gy+int(30*sc), SCENE_H, max(1, int(44*sc))):
+            for x in range(10, ww-10, max(1, int(55*sc))):
+                cv.create_oval(x, y, x+int(20*sc), y+int(6*sc), fill="#BBAA60", outline="")
 
     # ── Scroll hint ───────────────────────────────────────────────────────────
 
     def _draw_scroll_hint(self, ww):
         cv = self.scene_cv
-        gy = 284
+        gy = int(284 * self._scale)
         cv.create_text(20,    gy, text="◀", font=("Georgia", 14, "bold"), fill="#7A5520")
         cv.create_text(ww-20, gy, text="▶", font=("Georgia", 14, "bold"), fill="#7A5520")
         cv.create_text(ww//2, gy, text="← drag or arrow keys to scroll →",
@@ -397,55 +417,59 @@ class KakuotchiApp(tk.Tk):
 
     def _draw_header(self):
         cv = self.hdr_cv
+        sc = self._scale
+        s  = lambda v: int(v * sc)
         # Wooden bar
-        cv.create_rectangle(0, 0, W, 30, fill="#5C3010", outline="")
-        for y in [8, 16, 24]:
+        cv.create_rectangle(0, 0, W, s(30), fill="#5C3010", outline="")
+        for y in [s(8), s(16), s(24)]:
             cv.create_line(0, y, W, y, fill="#6E3D18")
-        for bx in [18, W-18]:
-            cv.create_rectangle(bx-12, 2, bx+12, 28, fill="#888", outline="#555")
-            cv.create_oval(bx-4, 11, bx+4, 19, fill="#555", outline="")
+        for bx in [s(18), W-s(18)]:
+            cv.create_rectangle(bx-s(12), s(2), bx+s(12), s(28), fill="#888", outline="#555")
+            cv.create_oval(bx-s(4), s(11), bx+s(4), s(19), fill="#555", outline="")
         # Ropes
-        for rx in [148, 332]:
-            pts = bezier((rx, 30), (rx+4, 50), (rx, 66))
+        for rx in [s(148), s(332)]:
+            pts = bezier((rx, s(30)), (rx+s(4), s(50)), (rx, s(66)))
             cv.create_line(*pts, fill="#5C3A10", width=3, smooth=True)
         # Sign board
-        sx1, sy1, sx2, sy2 = 128, 40, 352, 114
-        cv.create_rectangle(sx1+4, sy1+4, sx2+4, sy2+4, fill="#3A1A00", outline="")
+        sx1, sy1, sx2, sy2 = s(128), s(40), s(352), s(114)
+        cv.create_rectangle(sx1+s(4), sy1+s(4), sx2+s(4), sy2+s(4), fill="#3A1A00", outline="")
         cv.create_rectangle(sx1, sy1, sx2, sy2, fill="#9B6010", outline="#5C3010", width=3)
-        for py in range(sy1+18, sy2, 18):
+        for py in range(sy1+s(18), sy2, max(1, s(18))):
             cv.create_line(sx1+3, py, sx2-3, py, fill="#7A4A08")
-        for cx2, cy2 in [(sx1+10, sy1+10), (sx2-10, sy1+10),
-                         (sx1+10, sy2-10), (sx2-10, sy2-10)]:
-            cv.create_oval(cx2-4, cy2-4, cx2+4, cy2+4, fill="#888", outline="#555")
-            cv.create_line(cx2-3, cy2, cx2+3, cy2, fill="#444")
-            cv.create_line(cx2, cy2-3, cx2, cy2+3, fill="#444")
+        for cx2, cy2 in [(sx1+s(10), sy1+s(10)), (sx2-s(10), sy1+s(10)),
+                         (sx1+s(10), sy2-s(10)), (sx2-s(10), sy2-s(10))]:
+            cv.create_oval(cx2-s(4), cy2-s(4), cx2+s(4), cy2+s(4), fill="#888", outline="#555")
+            cv.create_line(cx2-s(3), cy2, cx2+s(3), cy2, fill="#444")
+            cv.create_line(cx2, cy2-s(3), cx2, cy2+s(3), fill="#444")
         mid_y = (sy1+sy2) // 2
         cv.create_text(W//2+2, mid_y+2, text="KAKUOTCHI",
-                       font=("Georgia", 22, "bold"), fill="#3A1800")
+                       font=("Georgia", max(10, s(22)), "bold"), fill="#3A1800")
         cv.create_text(W//2,   mid_y,   text="KAKUOTCHI",
-                       font=("Georgia", 22, "bold"), fill="#FFE88A")
+                       font=("Georgia", max(10, s(22)), "bold"), fill="#FFE88A")
         # Bull skull
-        self._draw_skull(cv, W//2, 16)
+        self._draw_skull(cv, W//2, s(16))
         # Settings gear
-        cv.create_oval(W-34, 6, W-6, 34, fill="#5C3010", outline="#DAA520", width=2,
+        cv.create_oval(W-s(34), s(6), W-s(6), s(34), fill="#5C3010", outline="#DAA520", width=2,
                        tags="btn_settings_hdr")
-        cv.create_text(W-20, 20, text="⚙", font=("Arial", 12), fill="#FFD700",
+        cv.create_text(W-s(20), s(20), text="⚙", font=("Arial", max(8, s(12))), fill="#FFD700",
                        tags="btn_settings_hdr")
         cv.tag_bind("btn_settings_hdr", "<Button-1>", lambda e: self._open_settings())
         cv.tag_bind("btn_settings_hdr", "<Enter>",    lambda e: cv.config(cursor="hand2"))
         cv.tag_bind("btn_settings_hdr", "<Leave>",    lambda e: cv.config(cursor=""))
 
     def _draw_skull(self, cv, cx, cy):
+        sc = self._scale
+        s  = lambda v: int(v * sc)
         cream, dark = "#F0EDE0", "#CCC5A8"
-        for pts in [bezier((cx-18, cy-8), (cx-45, cy-35), (cx-68, cy-22)),
-                    bezier((cx+18, cy-8), (cx+45, cy-35), (cx+68, cy-22))]:
-            cv.create_line(*pts, fill=cream, width=7, smooth=True)
-            cv.create_line(*pts, fill=dark,  width=3, smooth=True)
-        cv.create_oval(cx-22, cy-14, cx+22, cy+18, fill=cream, outline=dark, width=2)
-        cv.create_oval(cx-14, cy-8,  cx-4,  cy+2,  fill="#444", outline="")
-        cv.create_oval(cx+4,  cy-8,  cx+14, cy+2,  fill="#444", outline="")
-        cv.create_oval(cx-6, cy+5, cx-1, cy+12, fill="#888", outline="")
-        cv.create_oval(cx+1, cy+5, cx+6, cy+12, fill="#888", outline="")
+        for pts in [bezier((cx-s(18), cy-s(8)), (cx-s(45), cy-s(35)), (cx-s(68), cy-s(22))),
+                    bezier((cx+s(18), cy-s(8)), (cx+s(45), cy-s(35)), (cx+s(68), cy-s(22)))]:
+            cv.create_line(*pts, fill=cream, width=max(3, s(7)), smooth=True)
+            cv.create_line(*pts, fill=dark,  width=max(1, s(3)), smooth=True)
+        cv.create_oval(cx-s(22), cy-s(14), cx+s(22), cy+s(18), fill=cream, outline=dark, width=2)
+        cv.create_oval(cx-s(14), cy-s(8),  cx-s(4),  cy+s(2),  fill="#444", outline="")
+        cv.create_oval(cx+s(4),  cy-s(8),  cx+s(14), cy+s(2),  fill="#444", outline="")
+        cv.create_oval(cx-s(6), cy+s(5), cx-s(1), cy+s(12), fill="#888", outline="")
+        cv.create_oval(cx+s(1), cy+s(5), cx+s(6), cy+s(12), fill="#888", outline="")
 
     # ── Footer (fixed) ────────────────────────────────────────────────────────
 
@@ -457,14 +481,15 @@ class KakuotchiApp(tk.Tk):
         except Exception:
             label = month
 
+        sc = self._scale
         cv.create_rectangle(0, 0, W, FOOTER_H, fill="#5C3010", outline="")
         cv.create_line(0, 0, W, 0, fill="#3A1A00", width=2)
-        cv.create_text(34,    FOOTER_H//2, text="◀",
-                       font=("Georgia", 18, "bold"), fill="#FFD700", tags="btn_prev")
-        cv.create_text(W-34,  FOOTER_H//2, text="▶",
-                       font=("Georgia", 18, "bold"), fill="#FFD700", tags="btn_next")
+        cv.create_text(int(34*sc), FOOTER_H//2, text="◀",
+                       font=("Georgia", max(8, int(18*sc)), "bold"), fill="#FFD700", tags="btn_prev")
+        cv.create_text(W-int(34*sc), FOOTER_H//2, text="▶",
+                       font=("Georgia", max(8, int(18*sc)), "bold"), fill="#FFD700", tags="btn_next")
         cv.create_text(W//2,  FOOTER_H//2, text=label,
-                       font=("Georgia", 14, "bold"), fill="#FFE88A")
+                       font=("Georgia", max(8, int(14*sc)), "bold"), fill="#FFE88A")
 
         for tag, cmd in [("btn_prev", self._prev_month), ("btn_next", self._next_month)]:
             cv.tag_bind(tag, "<Button-1>", lambda e, c=cmd: c())
@@ -472,12 +497,14 @@ class KakuotchiApp(tk.Tk):
             cv.tag_bind(tag, "<Leave>",    lambda e: cv.config(cursor=""))
 
         # + button: embedded window in scene so it stays at bottom-right of viewport
-        add_btn = tk.Canvas(self.scene_cv, width=44, height=44,
+        btn_sz = max(22, int(44 * sc))
+        add_btn = tk.Canvas(self.scene_cv, width=btn_sz, height=btn_sz,
                             bd=0, highlightthickness=0, cursor="hand2")
-        add_btn.create_oval(0, 0, 44, 44, fill="#228B22", outline="#1A6A1A", width=2)
-        add_btn.create_text(22, 22, text="+", font=("Georgia", 20, "bold"), fill="#FFF")
+        add_btn.create_oval(0, 0, btn_sz, btn_sz, fill="#228B22", outline="#1A6A1A", width=2)
+        add_btn.create_text(btn_sz//2, btn_sz//2, text="+",
+                            font=("Georgia", max(10, int(20*sc)), "bold"), fill="#FFF")
         add_btn.bind("<Button-1>", lambda e: self._add_cactus())
-        self.scene_cv.create_window(W-30, SCENE_H-30, window=add_btn, tags="btn_add")
+        self.scene_cv.create_window(W-int(30*sc), SCENE_H-int(30*sc), window=add_btn, tags="btn_add")
 
     # ── Cacti ─────────────────────────────────────────────────────────────────
 
@@ -488,8 +515,9 @@ class KakuotchiApp(tk.Tk):
         if n == 0:
             return
         slot     = ww / n
-        base_y   = 415
-        y_jitter = [0, -16, 12, -6, 18, -10]
+        sc       = self._scale
+        base_y   = int(415 * sc)
+        y_jitter = [0, int(-16*sc), int(12*sc), int(-6*sc), int(18*sc), int(-10*sc)]
 
         for i, cat in enumerate(cats):
             cx    = slot * i + slot / 2
@@ -592,10 +620,12 @@ class KakuotchiApp(tk.Tk):
 
     def _draw_tumbleweed(self, cx, ground_y, cat, ratio, tag):
         cv  = self.scene_cv
-        rad = 38
+        sc  = self._scale
+        s   = lambda v: int(v * sc)
+        rad = s(38)
         cy  = ground_y - rad
 
-        cv.create_oval(cx-22, ground_y-4, cx+22, ground_y+9,
+        cv.create_oval(cx-s(22), ground_y-s(4), cx+s(22), ground_y+s(9),
                        fill="#9A7540", outline="", tags=tag)
         cv.create_oval(cx-rad, ground_y-rad*2, cx+rad, ground_y,
                        fill="#8B6510", outline="#5C3D08", width=2, tags=tag)
@@ -608,17 +638,17 @@ class KakuotchiApp(tk.Tk):
                        fill="", outline="#5C3D08", width=1, tags=tag)
         cv.create_oval(cx-rad//2, cy-rad, cx+rad//2, cy+rad,
                        fill="", outline="#5C3D08", width=1, tags=tag)
-        cv.create_rectangle(cx-14, ground_y-2, cx-4,  ground_y+14,
+        cv.create_rectangle(cx-s(14), ground_y-s(2), cx-s(4),  ground_y+s(14),
                             fill="#7A5510", outline="", tags=tag)
-        cv.create_rectangle(cx+4,  ground_y-2, cx+14, ground_y+14,
+        cv.create_rectangle(cx+s(4),  ground_y-s(2), cx+s(14), ground_y+s(14),
                             fill="#7A5510", outline="", tags=tag)
-        fy = cy - 4
-        for ex in [cx-12, cx+12]:
-            cv.create_line(ex-5, fy-5, ex+5, fy+5, fill="#000", width=2, tags=tag)
-            cv.create_line(ex+5, fy-5, ex-5, fy+5, fill="#000", width=2, tags=tag)
-        cv.create_line(cx-18, fy-10, cx-6,  fy-5,  fill="#000", width=3, tags=tag)
-        cv.create_line(cx+6,  fy-5,  cx+18, fy-10, fill="#000", width=3, tags=tag)
-        cv.create_arc(cx-12, fy+4, cx+12, fy+18,
+        fy = cy - s(4)
+        for ex in [cx-s(12), cx+s(12)]:
+            cv.create_line(ex-s(5), fy-s(5), ex+s(5), fy+s(5), fill="#000", width=2, tags=tag)
+            cv.create_line(ex+s(5), fy-s(5), ex-s(5), fy+s(5), fill="#000", width=2, tags=tag)
+        cv.create_line(cx-s(18), fy-s(10), cx-s(6),  fy-s(5),  fill="#000", width=3, tags=tag)
+        cv.create_line(cx+s(6),  fy-s(5),  cx+s(18), fy-s(10), fill="#000", width=3, tags=tag)
+        cv.create_arc(cx-s(12), fy+s(4), cx+s(12), fy+s(18),
                       start=20, extent=140, style=tk.ARC, outline="#000", width=2, tags=tag)
 
         pct    = int(ratio * 100)
@@ -633,24 +663,26 @@ class KakuotchiApp(tk.Tk):
 
     def _draw_label_bar(self, cx, ground_y, cat, ratio, state, tag):
         cv     = self.scene_cv
+        sc     = self._scale
+        s      = lambda v: int(v * sc)
         spent  = month_spent(cat, self.data["current_month"])
         budget = cat.get("budget", 0)
         pct    = int(ratio * 100)
-        cv.create_text(cx+1, ground_y+14, text=cat["name"],
+        cv.create_text(cx+1, ground_y+s(14), text=cat["name"],
                        font=("Georgia", 11, "bold"), fill="#2A0F00", tags=tag)
-        cv.create_text(cx,   ground_y+13, text=cat["name"],
+        cv.create_text(cx,   ground_y+s(13), text=cat["name"],
                        font=("Georgia", 11, "bold"), fill="#3E1F00", tags=tag)
-        cv.create_text(cx, ground_y+28,
+        cv.create_text(cx, ground_y+s(28),
                        text=f"${spent:.0f} / ${budget:.0f}  ({pct}%)",
                        font=("Georgia", 8), fill="#5C3A10", tags=tag)
-        bw       = 70
-        by       = ground_y + 40
+        bw       = s(70)
+        by       = ground_y + s(40)
         bar_fill = min(int(bw * ratio), bw)
         bar_col  = "#2E8B2E" if state == "happy" else "#CC8800"
-        cv.create_rectangle(cx-bw//2, by, cx+bw//2, by+8,
+        cv.create_rectangle(cx-bw//2, by, cx+bw//2, by+s(8),
                             fill="#9A7540", outline="", tags=tag)
         if bar_fill > 0:
-            cv.create_rectangle(cx-bw//2, by, cx-bw//2+bar_fill, by+8,
+            cv.create_rectangle(cx-bw//2, by, cx-bw//2+bar_fill, by+s(8),
                                 fill=bar_col, outline="", tags=tag)
 
     # ── Interaction ───────────────────────────────────────────────────────────
