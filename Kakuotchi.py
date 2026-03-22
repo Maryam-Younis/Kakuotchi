@@ -42,9 +42,9 @@ def load_data():
     return {
         "current_month": datetime.now().strftime("%Y-%m"),
         "categories": [
-            {"name": "Food",          "budget": 300.0, "expenses": []},
-            {"name": "Clothing",      "budget": 150.0, "expenses": []},
-            {"name": "Entertainment", "budget": 120.0, "expenses": []},
+            {"name": "Food",          "budget": 300.0, "expenses": [], "age": 2}, # Big
+            {"name": "Clothing",      "budget": 150.0, "expenses": [], "age": 0.5}, # Small
+            {"name": "Entertainment", "budget": 120.0, "expenses": [], "age": 1.5}, # Big
         ],
     }
 
@@ -181,7 +181,12 @@ class AddCactusDialog(tk.Toplevel):
         except Exception:
             messagebox.showerror("Oops", "Enter a valid positive budget.", parent=self)
             return
-        self.result = {"name": name, "budget": budget, "expenses": []}
+        self.result = {
+            "name": name,
+            "budget": budget,
+            "expenses": [],
+            "age": 2   # ✅ initialize age
+        }
         self.destroy()
 
 
@@ -265,6 +270,17 @@ class KakuotchiApp(tk.Tk):
         self.data     = load_data()
         self._cat_map = {}      # canvas tag → category dict
         self._did_drag = False  # distinguishes click vs drag
+
+        # LOAD IMAGES HERE
+        # Make sure the .png files are in the same directory as the script
+        self.cactus_sprites = {
+            "big_happy": tk.PhotoImage(file="big_happy.png"),
+            "big_ok": tk.PhotoImage(file="big_ok.png"),
+            "big_sad": tk.PhotoImage(file="big_sad.png"),
+            "small_happy": tk.PhotoImage(file="small_happy.png"),
+            "small_ok": tk.PhotoImage(file="small_ok.png"),
+            "small_sad": tk.PhotoImage(file="small_sad.png"),
+        }
 
         self._build_layout()
         self.protocol("WM_DELETE_WINDOW", self._quit)
@@ -507,7 +523,6 @@ class KakuotchiApp(tk.Tk):
         self.scene_cv.create_window(W-int(30*sc), SCENE_H-int(30*sc), window=add_btn, tags="btn_add")
 
     # ── Cacti ─────────────────────────────────────────────────────────────────
-
     def _draw_cacti(self, ww):
         cats  = self.data["categories"]
         month = self.data["current_month"]
@@ -522,144 +537,46 @@ class KakuotchiApp(tk.Tk):
         for i, cat in enumerate(cats):
             cx    = slot * i + slot / 2
             cy    = base_y + y_jitter[i % len(y_jitter)]
-            r     = budget_ratio(cat, month)
-            st    = state_for_ratio(r)
-            scale = 0.8 if cat["budget"] < 120 else (1.15 if cat["budget"] > 280 else 1.0)
+            ratio = budget_ratio(cat, month)
             tag   = f"cactus_{i}"
-            self._draw_cactus(cx, cy, cat, st, r, scale, tag)
 
-    def _draw_cactus(self, cx, ground_y, cat, state, ratio, scale, tag):
-        if state == "sad":
-            self._draw_tumbleweed(cx, ground_y, cat, ratio, tag)
-        else:
-            self._draw_green_cactus(cx, ground_y, cat, state, ratio, scale, tag)
-        self._cat_map[tag] = cat
+            # Use the new sprite drawing method
+            self._draw_cactus_sprite(cx, cy, cat, ratio, tag)
+
+    def _draw_cactus_sprite(self, cx, ground_y, cat, ratio, tag):
         cv = self.scene_cv
+
+        # 1. Determine Size (> 1 year = big)
+        age = cat.get("age", 0)
+        size = "big" if age > 1 else "small"
+
+        # 2. Determine Mood
+        if ratio <= 0.50:
+            mood = "happy"
+        elif ratio < 0.80:
+            mood = "ok"
+        else:
+            mood = "sad"
+
+        # 3. Fetch Image
+        image_key = f"{size}_{mood}"
+        sprite = self.cactus_sprites[image_key]
+
+        # 4. Draw the Sprite
+        # anchor="s" ensures the bottom-center of the image sits exactly on 'ground_y'
+        cv.create_image(cx, ground_y, image=sprite, anchor="s", tags=tag)
+
+        # 5. Draw the text labels and progress bar underneath
+        self._draw_label_bar(cx, ground_y, cat, ratio, mood, tag)
+
+        # 6. Re-bind the click/drag events
+        self._cat_map[tag] = cat
         cv.tag_bind(tag, "<ButtonRelease-1>",
                     lambda e, t=tag: (None if self._did_drag else self._on_cactus_click(t)))
         cv.tag_bind(tag, "<Button-3>",
                     lambda e, t=tag: self._on_cactus_click(t))
         cv.tag_bind(tag, "<Enter>", lambda e: cv.config(cursor="hand2"))
         cv.tag_bind(tag, "<Leave>", lambda e: cv.config(cursor=""))
-
-    def _draw_green_cactus(self, cx, ground_y, cat, state, ratio, scale, tag):
-        cv = self.scene_cv
-        s  = scale
-        body_c, lite_c, spine_c = (
-            ("#1A7A1A", "#2ECC2E", "#98FB98") if state == "happy"
-            else ("#787800", "#BABA00", "#DDDD44")
-        )
-        bw  = int(52 * s)
-        bh  = int(105 * s)
-        top = ground_y - bh
-
-        # Shadow
-        cv.create_oval(cx-int(28*s), ground_y-4, cx+int(28*s), ground_y+9,
-                       fill="#9A7540", outline="", tags=tag)
-        # Arms (behind body)
-        arm_y = top + int(40*s)
-        ah    = int(16*s)
-        al    = int(42*s)
-        cv.create_oval(cx-bw//2-al, arm_y-ah, cx-bw//2+int(12*s), arm_y+ah,
-                       fill=body_c, outline=lite_c, width=2, tags=tag)
-        cv.create_oval(cx+bw//2-int(12*s), arm_y-ah, cx+bw//2+al, arm_y+ah,
-                       fill=body_c, outline=lite_c, width=2, tags=tag)
-        # Body
-        cv.create_oval(cx-bw//2, top, cx+bw//2, ground_y,
-                       fill=body_c, outline=lite_c, width=2, tags=tag)
-        cv.create_oval(cx-bw//2+int(7*s), top+int(12*s),
-                       cx-bw//2+int(14*s), ground_y-int(10*s),
-                       fill=lite_c, outline="", tags=tag)
-        # Spines
-        for sy in range(int(top+14*s), int(ground_y-8*s), int(16*s)):
-            for side, sign in [(cx-bw//2, -1), (cx+bw//2, 1)]:
-                cv.create_line(side+sign*int(7*s), sy-int(3*s), side, sy,
-                               fill=spine_c, width=1, tags=tag)
-                cv.create_line(side+sign*int(7*s), sy+int(3*s), side, sy,
-                               fill=spine_c, width=1, tags=tag)
-        # Face
-        fy = top + int(48*s)
-        if state == "happy":
-            ew = int(14*s)
-            for ex in [cx-int(18*s), cx+int(4*s)]:
-                cv.create_arc(ex, fy-int(6*s), ex+ew, fy+int(6*s),
-                              start=0, extent=180, style=tk.ARC,
-                              outline="#000", width=max(2, int(2.5*s)), tags=tag)
-            cv.create_arc(cx-int(18*s), fy+int(5*s), cx+int(18*s), fy+int(22*s),
-                          start=200, extent=140, style=tk.ARC,
-                          outline="#000", width=max(2, int(2.5*s)), tags=tag)
-            cv.create_rectangle(cx-int(13*s), fy+int(12*s),
-                                 cx+int(13*s), fy+int(19*s),
-                                 fill="#FFF", outline="", tags=tag)
-            for tx in range(int(cx-10*s), int(cx+10*s), max(1, int(6*s))):
-                cv.create_line(tx, fy+int(12*s), tx, fy+int(19*s),
-                               fill="#DDD", width=1, tags=tag)
-            cv.create_oval(cx-int(24*s), fy+int(4*s), cx-int(13*s), fy+int(12*s),
-                           fill="#FFB0B0", outline="", tags=tag)
-            cv.create_oval(cx+int(13*s), fy+int(4*s), cx+int(24*s), fy+int(12*s),
-                           fill="#FFB0B0", outline="", tags=tag)
-        else:  # warning
-            ev = int(8*s)
-            cv.create_oval(cx-int(19*s), fy-ev, cx-int(7*s), fy+ev,
-                           fill="#fff", outline="", tags=tag)
-            cv.create_oval(cx+int(7*s),  fy-ev, cx+int(19*s), fy+ev,
-                           fill="#fff", outline="", tags=tag)
-            cv.create_oval(cx-int(16*s), fy-int(4*s), cx-int(10*s), fy+int(4*s),
-                           fill="#000", outline="", tags=tag)
-            cv.create_oval(cx+int(10*s), fy-int(4*s), cx+int(16*s), fy+int(4*s),
-                           fill="#000", outline="", tags=tag)
-            cv.create_line(cx-int(20*s), fy-int(13*s), cx-int(6*s),  fy-int(10*s),
-                           fill="#000", width=max(2, int(2*s)), tags=tag)
-            cv.create_line(cx+int(6*s),  fy-int(10*s), cx+int(20*s), fy-int(13*s),
-                           fill="#000", width=max(2, int(2*s)), tags=tag)
-            cv.create_line(cx-int(14*s), fy+int(12*s), cx-int(5*s), fy+int(9*s),
-                           cx+int(5*s),  fy+int(12*s), cx+int(14*s), fy+int(9*s),
-                           fill="#000", width=max(2, int(2*s)), tags=tag)
-
-        self._draw_label_bar(cx, ground_y, cat, ratio, state, tag)
-
-    def _draw_tumbleweed(self, cx, ground_y, cat, ratio, tag):
-        cv  = self.scene_cv
-        sc  = self._scale
-        s   = lambda v: int(v * sc)
-        rad = s(38)
-        cy  = ground_y - rad
-
-        cv.create_oval(cx-s(22), ground_y-s(4), cx+s(22), ground_y+s(9),
-                       fill="#9A7540", outline="", tags=tag)
-        cv.create_oval(cx-rad, ground_y-rad*2, cx+rad, ground_y,
-                       fill="#8B6510", outline="#5C3D08", width=2, tags=tag)
-        for ang in range(0, 180, 25):
-            a = math.radians(ang)
-            cv.create_line(cx-rad*math.cos(a), cy-rad*math.sin(a),
-                           cx+rad*math.cos(a), cy+rad*math.sin(a),
-                           fill="#5C3D08", width=1, tags=tag)
-        cv.create_oval(cx-rad, cy-rad//2, cx+rad, cy+rad//2,
-                       fill="", outline="#5C3D08", width=1, tags=tag)
-        cv.create_oval(cx-rad//2, cy-rad, cx+rad//2, cy+rad,
-                       fill="", outline="#5C3D08", width=1, tags=tag)
-        cv.create_rectangle(cx-s(14), ground_y-s(2), cx-s(4),  ground_y+s(14),
-                            fill="#7A5510", outline="", tags=tag)
-        cv.create_rectangle(cx+s(4),  ground_y-s(2), cx+s(14), ground_y+s(14),
-                            fill="#7A5510", outline="", tags=tag)
-        fy = cy - s(4)
-        for ex in [cx-s(12), cx+s(12)]:
-            cv.create_line(ex-s(5), fy-s(5), ex+s(5), fy+s(5), fill="#000", width=2, tags=tag)
-            cv.create_line(ex+s(5), fy-s(5), ex-s(5), fy+s(5), fill="#000", width=2, tags=tag)
-        cv.create_line(cx-s(18), fy-s(10), cx-s(6),  fy-s(5),  fill="#000", width=3, tags=tag)
-        cv.create_line(cx+s(6),  fy-s(5),  cx+s(18), fy-s(10), fill="#000", width=3, tags=tag)
-        cv.create_arc(cx-s(12), fy+s(4), cx+s(12), fy+s(18),
-                      start=20, extent=140, style=tk.ARC, outline="#000", width=2, tags=tag)
-
-        pct    = int(ratio * 100)
-        spent  = month_spent(cat, self.data["current_month"])
-        budget = cat.get("budget", 0)
-        cv.create_text(cx, ground_y+18, text=cat["name"],
-                       font=("Georgia", 11, "bold"), fill="#3E1F00", tags=tag)
-        cv.create_text(cx, ground_y+34, text=f"OVER BUDGET! ({pct}%)",
-                       font=("Georgia", 8, "bold"), fill="#CC0000", tags=tag)
-        cv.create_text(cx, ground_y+48, text=f"${spent:.0f} / ${budget:.0f}",
-                       font=("Georgia", 8), fill="#884400", tags=tag)
 
     def _draw_label_bar(self, cx, ground_y, cat, ratio, state, tag):
         cv     = self.scene_cv
@@ -797,9 +714,14 @@ class KakuotchiApp(tk.Tk):
         self._draw()
 
     def _next_month(self):
-        dt   = datetime.strptime(self.data["current_month"], "%Y-%m")
+        dt = datetime.strptime(self.data["current_month"], "%Y-%m")
         m, y = (1, dt.year+1) if dt.month == 12 else (dt.month+1, dt.year)
         self.data["current_month"] = f"{y:04d}-{m:02d}"
+
+        # Increase age of every cactus by 1 month (≈ 0.083 years)
+        for cat in self.data["categories"]:
+            cat["age"] = cat.get("age", 0) + (1/12)
+
         save_data(self.data)
         self._draw()
 
